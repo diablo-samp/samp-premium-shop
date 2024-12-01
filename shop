@@ -1,0 +1,112 @@
+#include <a_samp>
+#include <YSI\y_ini>
+
+#define MAX_PREMIUM_ITEMS 5  // broj premium itema u shop
+
+new g_PremiumItems[MAX_PREMIUM_ITEMS][5] = {
+    {1, 50, 0},    // Item 1: Vehicle ID 1, Price: 50 Golda
+    {2, 100, 1},   // Item 2: Weapon ID 2, Price: 100 Golda
+    {3, 200, 0},   // Item 3: Vehicle ID 3, Price: 200 Golda
+    {4, 150, 1},   // Item 4: Weapon ID 4, Price: 150 Golda
+    {5, 300, 0}    // Item 5: Vehicle ID 5, Price: 300 Golda
+};
+
+// Player Gold balance
+new g_PlayerGold[MAX_PLAYERS];
+
+// Ucitavanje(Gold balance)
+public LoadPlayerData(playerid)
+{
+    new filename[32];
+    format(filename, sizeof(filename), "accounts/player_%d.ini", playerid);
+
+    // Ucitavanje Gold balance
+    g_PlayerGold[playerid] = INI_ReadInt(filename, "Gold");
+
+    return 1;
+}
+
+// funkcija za cuvanje golda (Gold balance)
+public SavePlayerData(playerid)
+{
+    new filename[32];
+    format(filename, sizeof(filename), "accounts/player_%d.ini", playerid);
+
+    // cuvanje gold balance
+    INI_WriteInt(filename, "Gold", g_PlayerGold[playerid]);
+
+    return 1;
+}
+
+// komanda
+CMD:premiumshop(playerid, params[])
+{
+    new message[256];
+
+    // Pokazuje premium iteme
+    SendClientMessage(playerid, COLOR_YELLOW, "Welcome to the Premium Shop!");
+    for (new i = 0; i < MAX_PREMIUM_ITEMS; i++) {
+        format(message, sizeof(message), "Item #%d: Cena: %d Gold", i + 1, g_PremiumItems[i][1]);
+        SendClientMessage(playerid, COLOR_GREEN, message);
+    }
+
+    SendClientMessage(playerid, COLOR_YELLOW, "Koristi /kupiitem [item_id] da kupis item.");
+    return 1;
+}
+
+// Komanda za kupovinu Premium Shop
+CMD:kupiitem(playerid, params[])
+{
+    if (strlen(params) == 0) {
+        SendClientMessage(playerid, COLOR_RED, "Usage: /kupiitem [item_id]");
+        return 1;
+    }
+
+    new itemID = strval(params);
+
+    if (itemID < 1 || itemID > MAX_PREMIUM_ITEMS) {
+        SendClientMessage(playerid, COLOR_RED, "Invalid item ID.");
+        return 1;
+    }
+
+    // 
+    new itemPrice = g_PremiumItems[itemID - 1][1];
+    if (g_PlayerGold[playerid] < itemPrice) {
+        SendClientMessage(playerid, COLOR_RED, "Nemas dovoljno golda da kupis ovaj item.");
+        return 1;
+    }
+
+    g_PlayerGold[playerid] -= itemPrice;
+
+    if (g_PremiumItems[itemID - 1][2] == 0) {
+        GivePlayerVehicle(playerid, g_PremiumItems[itemID - 1][0]);
+        SendClientMessage(playerid, COLOR_GREEN, "Uspesno ste kupili premium vozilo!");
+    } else if (g_PremiumItems[itemID - 1][2] == 1) {
+        GivePlayerWeapon(playerid, g_PremiumItems[itemID - 1][0], 999);
+        SendClientMessage(playerid, COLOR_GREEN, "Uspesno ste kupili premium oružje!");
+    }
+
+    SavePlayerData(playerid);
+
+    return 1;
+}
+
+CMD:checkgold(playerid, params[])
+{
+    SendClientMessage(playerid, COLOR_BLUE, format("Trenutno imas %d Golda.", g_PlayerGold[playerid]));
+    return 1;
+}
+
+// On player connect, load their Gold balance
+public OnPlayerConnect(playerid)
+{
+    LoadPlayerData(playerid);
+    SendClientMessage(playerid, COLOR_GREEN, "Dobrodosli! Vase Premium Gold stanje je ucitano.");
+    return 1;
+}
+
+public OnPlayerDisconnect(playerid, reason)
+{
+    SavePlayerData(playerid);
+    return 1;
+}
