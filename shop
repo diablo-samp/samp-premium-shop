@@ -1,5 +1,4 @@
 #include <a_samp>
-#include <YSI\y_ini>
 
 #define MAX_PREMIUM_ITEMS 5  // broj premium itema u shop
 
